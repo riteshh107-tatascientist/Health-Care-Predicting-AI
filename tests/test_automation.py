@@ -34,5 +34,5 @@ def test_owner_portrait_present_and_not_distorted():
     from PIL import ImageStat
     img = Image.open(path)
     w, h = img.size
-    assert w == h, "headshot crop must be square (no stretching)"
+    assert abs((w / h) - (691 / 1268)) < 0.01, "full photo must keep its original proportions"
     assert sum(ImageStat.Stat(img.convert("L")).stddev) > 10, "portrait must not be blank"

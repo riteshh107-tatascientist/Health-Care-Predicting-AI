@@ -23,7 +23,7 @@ from auth import current_user, logout
 from database import init_db
 from navigation import go_to, nav_options
 from utils import setup_logging
-from views import (admin, analyzer, appointments, auth_pages, dashboard, emergency, feedback, guidance, home,
+from views import (admin, analyzer, appointments, auth_pages, dashboard, emergency, feedback, guidance, health_plan, home,
                    medications, profile, records, risk, services)
 
 LOG = setup_logging()
@@ -38,6 +38,7 @@ PAGE_RENDERERS = {
     "risk": risk.render,
     "medications": medications.render,
     "dashboard": dashboard.render,
+    "health_plan": health_plan.render,
     "profile": profile.render,
     "admin": admin.render,
     "feedback": feedback.render,

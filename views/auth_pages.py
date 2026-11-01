@@ -56,11 +56,12 @@ def _register_form() -> None:
         password = c3.text_input("Password (8+ characters, letters and numbers)", type="password",
                                  autocomplete="new-password")
         confirm = c4.text_input("Confirm password", type="password", autocomplete="new-password")
-        c5, c6, c7 = st.columns(3)
-        dob = c5.date_input("Date of birth", value=date(1995, 1, 1), min_value=date(1900, 1, 1),
-                            max_value=date.today())
-        gender = c6.selectbox("Gender", config.GENDERS)
-        blood = c7.selectbox("Blood group", ["Not known", *config.BLOOD_GROUPS])
+        dob = ui.dob_picker("Date of birth *", "reg_dob", date(1995, 1, 1))
+        c5, c6 = st.columns(2)
+        gender = c5.selectbox("Gender *", config.GENDERS,
+                              help="Used only for health-plan estimates. You can change it later in My Profile.")
+        blood = c6.selectbox("Blood group", ["Not known", *config.BLOOD_GROUPS],
+                             help="Choose 'Not known' if you do not know it.")
         c8, c9 = st.columns(2)
         phone = c8.text_input("Mobile number (optional)")
         city = c9.text_input("City (optional)")

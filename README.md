@@ -219,3 +219,12 @@ via the UCI Machine Learning Repository.
 - Enter real hospital emergency contacts under **Admin Console → Emergency settings**. The app does not invent emergency numbers.
 - Host the database and uploads on persistent storage (PostgreSQL and object storage). Streamlit Community Cloud resets local files on restart.
 - Have clinical, legal and data-protection review completed before real patient data is stored.
+
+## Diet & Health Plan (v2.3)
+
+- **My plan:** calorie, protein and water targets (Mifflin-St Jeor and WHO activity guidance), BMI with Asian cut-offs, a meal and water timetable built from wake-up and bedtime hours, a walking plan and safety notes.
+- **7-day menu:** rotating menus for lower-, middle- and high-income family budgets and for vegetarian, eggetarian and non-vegetarian diets.
+- **Vitamins & minerals:** everyday food sources, low-cost choices and cautions.
+- **Daily tracker:** water glasses, walking minutes and meals, with a streak and reminders for missed days.
+- All guidance is educational. It is not a prescription; people with medical conditions, pregnant women and children should check with a doctor or dietitian.
+- Tooltips must not contain parentheses: the Streamlit frontend in some browsers fails to render them (`RangeError: Incorrect locale information`).

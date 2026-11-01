@@ -77,7 +77,7 @@ def _reminders(patient: dict, user: dict) -> None:
         title = c2.text_input("Title", max_chars=120, placeholder="e.g. Follow-up for blood test review")
         c3, c4 = st.columns(2)
         rdate = c3.date_input("Date", value=date.today() + timedelta(days=7), min_value=date.today())
-        rtime = c4.time_input("Time (optional)", value=None)
+        rtime = ui.time_slot_picker("Time (optional)", optional=True, key="med_rtime")
         c5, c6 = st.columns(2)
         doctor = c5.text_input("Doctor (optional)", max_chars=120)
         reason = c6.text_input("Reason (optional)", max_chars=160)
@@ -88,7 +88,7 @@ def _reminders(patient: dict, user: dict) -> None:
             st.error("Please add a title for the reminder.")
         else:
             add_reminder(patient["id"], rtype, title.strip(), rdate.isoformat(),
-                         rtime.strftime("%H:%M") if rtime else None, doctor.strip() or None,
+                         rtime if rtime else None, doctor.strip() or None,
                          reason.strip() or None, notes.strip() or None)
             log_action(user["id"], "reminder_added", rtype)
             st.success("Reminder added.")

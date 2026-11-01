@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import base64
+from datetime import date
 import time
 from functools import lru_cache
 from html import escape
@@ -128,6 +129,7 @@ EXTRA_CSS = """
 [data-testid="stSidebar"] .stButton>button:hover{transform:translateY(-2px);box-shadow:0 0 28px rgba(94,234,212,.85)}
 @keyframes glowPulse{0%,100%{box-shadow:0 0 12px rgba(20,184,166,.35)}50%{box-shadow:0 0 26px rgba(94,234,212,.75)}}
 .hx-next{border-left:6px solid #0f9b8e}
+.hx-photo{width:100%;max-width:300px;height:auto;border-radius:18px;border:4px solid #fff;box-shadow:0 14px 34px rgba(11,37,69,.22);background:#fff}
 @media (max-width: 768px){
   [data-testid="stHorizontalBlock"]{flex-wrap:wrap!important;gap:.6rem!important}
   [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]{min-width:100%!important;flex:1 1 100%!important}
@@ -249,7 +251,7 @@ def sidebar_user_card(user: dict) -> None:
 
 def leadership_section() -> None:
     uri = portrait_data_uri()
-    image = (f'<img class="hx-portrait" src="{uri}" alt="Portrait of {escape(config.OWNER_NAME)}"/>'
+    image = (f'<img class="hx-photo" src="{uri}" alt="Portrait of {escape(config.OWNER_NAME)}"/>'
              if uri else '<div class="hx-portrait" style="display:flex;align-items:center;justify-content:center;'
                          'background:#0b3d6e;color:#fff;font-size:64px">✚</div>')
     st.markdown(
@@ -263,6 +265,41 @@ def leadership_section() -> None:
         '</div></div>',
         unsafe_allow_html=True,
     )
+
+
+def dob_picker(label: str, key: str, default: date, box=None) -> date:
+    """Day / month / year selectors from 1920 to today. (The browser calendar only shows a few years at a time.)"""
+    import calendar
+    target = box or st
+    today = date.today()
+    years = list(range(today.year, 1919, -1))
+    months = [calendar.month_name[i] for i in range(1, 13)]
+    target.markdown(f"<span style='font-weight:600'>{label}</span>", unsafe_allow_html=True)
+    c1, c2, c3 = target.columns([1, 1.6, 1.2])
+    year = c3.selectbox("Year", years, index=years.index(default.year) if default.year in years else 0,
+                        key=f"{key}_y")
+    month_name = c2.selectbox("Month", months, index=default.month - 1, key=f"{key}_m")
+    month = months.index(month_name) + 1
+    last_day = calendar.monthrange(year, month)[1]
+    day = c1.selectbox("Day", list(range(1, last_day + 1)), index=min(default.day, last_day) - 1,
+                       key=f"{key}_d_{year}_{month}")
+    chosen = date(year, month, day)
+    if chosen > today:
+        target.warning("Date of birth cannot be in the future.")
+        return today
+    return chosen
+
+
+TIME_SLOTS = [f"{h:02d}:{m:02d}" for h in range(0, 24) for m in (0, 30)]
+
+
+def time_slot_picker(label: str, default: str | None = None, optional: bool = False, key: str | None = None,
+                     help: str | None = None) -> str | None:
+    """Dropdown of 30-minute times. Used instead of st.time_input, which breaks in some browser locales."""
+    options = (["Not set"] if optional else []) + TIME_SLOTS
+    index = options.index(default) if default in options else 0
+    picked = st.selectbox(label, options, index=index, key=key, help=help)
+    return None if picked == "Not set" else picked
 
 
 def footer() -> None:

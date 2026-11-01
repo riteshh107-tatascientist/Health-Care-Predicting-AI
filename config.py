@@ -35,7 +35,7 @@ APP_SHORT_NAME = "HealthCareX"
 APP_VERSION = "2.1.0"
 TAGLINE = "Compassionate Care. Smarter Healthcare. Better Patient Support."
 OWNER_NAME = "Ritesh Kumar Singh"
-OWNER_TITLE = "Founder & Manager"
+OWNER_TITLE = "Founder, Owner & CEO"
 OWNER_STATEMENT = "Technology-driven healthcare support designed around patients, accessibility and informed care."
 CURRENCY = "₹"
 

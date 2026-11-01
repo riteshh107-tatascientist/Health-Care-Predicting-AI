@@ -148,6 +148,23 @@ CREATE TABLE IF NOT EXISTS app_settings (
     key TEXT PRIMARY KEY,
     value TEXT
 );
+
+CREATE TABLE IF NOT EXISTS health_plans (
+    patient_id INTEGER PRIMARY KEY REFERENCES patients(id) ON DELETE CASCADE,
+    inputs_json TEXT NOT NULL,
+    budget_tier TEXT NOT NULL,
+    diet TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
+CREATE TABLE IF NOT EXISTS daily_logs (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    patient_id INTEGER NOT NULL REFERENCES patients(id) ON DELETE CASCADE,
+    log_date TEXT NOT NULL,
+    water_glasses INTEGER NOT NULL DEFAULT 0,
+    walk_minutes INTEGER NOT NULL DEFAULT 0,
+    meals_done TEXT NOT NULL DEFAULT '',
+    UNIQUE (patient_id, log_date)
+);
 """
 
 PATIENT_FIELDS = (
@@ -792,3 +809,63 @@ def patient_growth() -> list[dict]:
     return query(
         """SELECT substr(u.created_at, 1, 10) AS day, COUNT(*) AS count FROM patients p
            JOIN users u ON u.id = p.user_id GROUP BY day ORDER BY day""")
+
+
+# ---------- diet & health plan ----------
+def get_health_plan(patient_id: int) -> dict | None:
+    return query_one("SELECT * FROM health_plans WHERE patient_id = ?", (patient_id,))
+
+
+def save_health_plan(patient_id: int, inputs: dict, budget: str, diet: str) -> None:
+    import json
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO health_plans (patient_id, inputs_json, budget_tier, diet, updated_at)
+               VALUES (?, ?, ?, ?, datetime('now'))
+               ON CONFLICT(patient_id) DO UPDATE SET inputs_json = excluded.inputs_json,
+                   budget_tier = excluded.budget_tier, diet = excluded.diet, updated_at = excluded.updated_at""",
+            (patient_id, json.dumps(inputs), budget, diet))
+
+
+def get_daily_log(patient_id: int, log_date: str) -> dict | None:
+    return query_one("SELECT * FROM daily_logs WHERE patient_id = ? AND log_date = ?", (patient_id, log_date))
+
+
+def save_daily_log(patient_id: int, log_date: str, water_glasses: int, walk_minutes: int, meal_keys: list) -> None:
+    with get_conn() as conn:
+        conn.execute(
+            """INSERT INTO daily_logs (patient_id, log_date, water_glasses, walk_minutes, meals_done)
+               VALUES (?, ?, ?, ?, ?)
+               ON CONFLICT(patient_id, log_date) DO UPDATE SET water_glasses = excluded.water_glasses,
+                   walk_minutes = excluded.walk_minutes, meals_done = excluded.meals_done""",
+            (patient_id, log_date, water_glasses, walk_minutes, ",".join(meal_keys)))
+
+
+def recent_daily_logs(patient_id: int, days: int = 14) -> list[dict]:
+    return query("SELECT * FROM daily_logs WHERE patient_id = ? ORDER BY log_date DESC LIMIT ?", (patient_id, days))
+
+
+def plan_tier_counts() -> list[dict]:
+    return query("SELECT budget_tier, COUNT(*) AS n FROM health_plans GROUP BY budget_tier")
+
+
+def admin_user_rows(search: str = "", role: str = "", active: bool | None = None) -> list[dict]:
+    sql = """SELECT u.id, u.name, u.email, u.role, u.is_active, u.created_at, hp.budget_tier,
+                    (SELECT COUNT(*) FROM appointments a JOIN patients p ON p.id = a.patient_id
+                     WHERE p.user_id = u.id) AS appt_count
+             FROM users u
+             LEFT JOIN patients p ON p.user_id = u.id
+             LEFT JOIN health_plans hp ON hp.patient_id = p.id
+             WHERE 1 = 1"""
+    params: list = []
+    if search:
+        sql += " AND (u.name LIKE ? OR u.email LIKE ?)"
+        params += [f"%{search}%", f"%{search}%"]
+    if role:
+        sql += " AND u.role = ?"
+        params.append(role)
+    if active is not None:
+        sql += " AND u.is_active = ?"
+        params.append(1 if active else 0)
+    sql += " ORDER BY u.created_at DESC, u.id DESC"
+    return query(sql, tuple(params))

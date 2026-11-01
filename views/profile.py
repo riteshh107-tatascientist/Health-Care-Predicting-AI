@@ -34,7 +34,7 @@ def render(user: dict) -> None:
         name = st.text_input("Full name", value=patient["name"])
         c1, c2 = st.columns(2)
         dob_value = date.fromisoformat(patient["date_of_birth"]) if patient["date_of_birth"] else date(1995, 1, 1)
-        dob = c1.date_input("Date of birth", value=dob_value, min_value=date(1900, 1, 1), max_value=date.today())
+        dob = ui.dob_picker("Date of birth *", "prof_dob", dob_value, box=c1)
         gender_index = config.GENDERS.index(patient["gender"]) if patient["gender"] in config.GENDERS else 0
         gender = c2.selectbox("Gender", config.GENDERS, index=gender_index)
         blood_options = ["Not known", *config.BLOOD_GROUPS]

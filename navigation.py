@@ -11,6 +11,7 @@ PAGE_LABELS = {
     "risk": "📊 Risk Assessment",
     "medications": "💊 Medications & Reminders",
     "dashboard": "📈 Health Dashboard",
+    "health_plan": "🥗 Diet & Health Plan",
     "profile": "👤 My Profile",
     "admin": "🛠️ Admin Console",
     "feedback": "💬 Feedback & Support",
@@ -27,7 +28,7 @@ ROLE_OVERRIDES = {
 
 ROLE_PAGES = {
     "patient": ["home", "services", "appointments", "records", "analyzer", "guidance", "risk",
-                "medications", "dashboard", "profile", "feedback", "emergency"],
+                "medications", "dashboard", "health_plan", "profile", "feedback", "emergency"],
     "doctor": ["home", "appointments", "feedback", "emergency"],
     "staff": ["home", "appointments", "services", "feedback", "emergency"],
     "admin": ["home", "admin", "appointments", "feedback", "emergency"],

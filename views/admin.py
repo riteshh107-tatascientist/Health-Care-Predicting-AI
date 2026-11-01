@@ -141,42 +141,67 @@ def _analytics() -> None:
 
 
 def _users(user: dict) -> None:
-    users = list_users()
-    st.dataframe([{"Name": u["name"], "Email": u["email"], "Role": u["role"],
-                   "Active": "Yes" if u["is_active"] else "No", "Joined": u["created_at"][:10]} for u in users],
-                 hide_index=True)
-    st.markdown("#### Change a user")
-    options = {f"{u['name']} ({u['email']})": u for u in users if u["id"] != user["id"]}
-    if not options:
-        ui.empty_state("No other users yet.")
+    import pandas as pd
+    from database import admin_user_rows, query, set_user_password
+
+    st.markdown("#### Find and manage users")
+    c1, c2, c3 = st.columns([2, 1, 1])
+    search = c1.text_input("Search by name or email", key="adm_search", placeholder="e.g. ritesh or gmail")
+    role_pick = c2.selectbox("Role", ["All", *config.ROLES], key="adm_role_f")
+    status_pick = c3.selectbox("Status", ["All", "Active", "Suspended"], key="adm_status_f")
+    active_filter = {"All": None, "Active": True, "Suspended": False}[status_pick]
+    rows = admin_user_rows(search.strip(), "" if role_pick == "All" else role_pick, active_filter)
+    counts = {r: sum(1 for x in rows if x["role"] == r) for r in config.ROLES}
+    st.caption(f"Showing {len(rows)} user(s) | patients {counts['patient']} | doctors {counts['doctor']} | "
+               f"staff {counts['staff']} | admins {counts['admin']}")
+    if not rows:
+        ui.empty_state("No users match these filters.")
     else:
-        target = options[st.selectbox("User", list(options), key="adm_user")]
+        table = pd.DataFrame([{
+            "Name": r["name"], "Email": r["email"], "Role": r["role"],
+            "Status": "Active" if r["is_active"] else "Suspended",
+            "Health plan": r["budget_tier"] or "Not created",
+            "Appointments": r["appt_count"], "Joined": r["created_at"][:10],
+        } for r in rows])
+        st.dataframe(table, hide_index=True)
+        st.download_button("⬇️ Export this list (CSV)", table.to_csv(index=False).encode("utf-8"),
+                           "healthcarex_users.csv", "text/csv", key="adm_export")
+
+    options = {f"{r['name']} · {r['email']} · {r['role']}": r for r in rows if r["id"] != user["id"]}
+    if options:
+        st.markdown("#### Manage a user")
+        target = options[st.selectbox("Choose a user", list(options), key="adm_user")]
+        st.write(f"**{target['name']}** | role **{target['role']}** | status "
+                 f"**{'Active' if target['is_active'] else 'Suspended'}** | joined {target['created_at'][:10]}")
+        activity = query("SELECT * FROM audit_logs WHERE user_id = ? ORDER BY id DESC LIMIT 10", (target["id"],))
+        with st.expander("Recent activity (last 10 actions)"):
+            if activity:
+                st.dataframe(pd.DataFrame(activity), hide_index=True)
+            else:
+                st.caption("No recorded activity yet.")
         c1, c2 = st.columns(2)
-        new_role = c1.selectbox("Role", config.ROLES, index=config.ROLES.index(target["role"]), key="adm_role")
-        active = c2.checkbox("Account active", value=bool(target["is_active"]), key="adm_active")
-        if st.button("Save user changes", key="adm_save_user"):
+        new_role = c1.selectbox("Role", list(config.ROLES), index=list(config.ROLES).index(target["role"]),
+                                key="adm_role")
+        active = c2.checkbox("Account active (untick to suspend)", value=bool(target["is_active"]), key="adm_active")
+        if st.button("Save user changes", key="adm_save_user", type="primary"):
             set_user_role(target["id"], new_role)
             set_user_active(target["id"], active)
             log_action(user["id"], "admin_user_update", f"user {target['id']} role={new_role} active={active}")
             st.success("User updated.")
             st.rerun()
-    if options:
-        st.markdown("#### Reset password")
-        st.caption("Generates a one-time temporary password. Share it privately; the user should change it after signing in.")
         if st.button("Generate temporary password", key="adm_reset_pw"):
             import secrets
-            from database import set_user_password
-            from security import hash_password
             temp = secrets.token_urlsafe(9) + "1a"
             set_user_password(target["id"], hash_password(temp))
             log_action(user["id"], "admin_password_reset", f"user {target['id']}")
-            st.success(f"Temporary password for {target['email']}:")
+            st.success(f"Temporary password for {target['email']} (shown once):")
             st.code(temp)
+
     st.markdown("#### Create a staff account")
     with st.form("staff_form", clear_on_submit=True):
-        name = st.text_input("Full name")
-        email = st.text_input("Email address")
-        password = st.text_input("Temporary password", type="password",
+        name = st.text_input("Full name *")
+        email = st.text_input("Email address *")
+        password = st.text_input("Temporary password *", type="password",
                                  help="8+ characters with letters and numbers. Ask the staff member to change it.")
         submitted = st.form_submit_button("Create staff account")
     if submitted:
