@@ -1,0 +1,24 @@
+# secrets and local config
+.env
+.streamlit/secrets.toml
+
+# runtime data (never commit real patient data or uploads)
+data/*.db
+data/*.sqlite*
+uploads/
+logs/
+models/*.joblib
+
+# python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# editors / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
